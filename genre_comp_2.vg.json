@@ -1,7 +1,7 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
   "title": {
-    "text": "Winning Genre Entries vs Asutralia's Entries",
+    "text": "Winning Genre Entries vs Australia's Entries",
     "subtitle": "Winner genre · Australia's genre · placement (2015–2026)",
     "fontSize": 20,
     "subtitleFontSize": 13,
@@ -13,7 +13,7 @@
   "height": 300,
   "background": "transparent",
   "data": {
-    "url": "data/eurovision_song.csv",
+    "url": "data/Eurovision_song.csv",
     "format": {
       "type": "csv"
     }
