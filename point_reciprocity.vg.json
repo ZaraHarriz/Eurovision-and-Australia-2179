@@ -1,0 +1,374 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "Voting Reciprocity: Net Difference",
+  "config": {
+    "background": "transparent",
+    "font": "sans-serif"
+  },
+  "width": 280,
+  "height": 900, 
+  "padding": {
+    "top": 10,
+    "left": 10,
+    "right": 20,
+    "bottom": 50
+  },
+  "title": {
+    "text": "Eurovision Voting Reciprocity With Australia",
+    "fontSize": 20,
+    "subtitleFontSize": 13,
+    "subtitleColor": "#e0e0e0",
+    "anchor": "start",
+    "offset": 8,
+    "color": "#ffffff"
+  },
+  "data": [
+    {
+      "name": "toAus",
+      "url": "data/points_to_aus.csv",
+      "format": {
+        "type": "csv",
+        "parse": {
+          "Year": "number",
+          "Points": "number"
+        }
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['Voting Country'] !== 'Rest of world' && isValid(datum['Voting Country']) && isValid(datum.Points) && datum.Points > 0"
+        },
+        {
+          "type": "formula",
+          "as": "country",
+          "expr": "datum['Voting Country']"
+        },
+        {
+          "type": "formula",
+          "as": "received",
+          "expr": "datum.Points"
+        },
+        {
+          "type": "formula",
+          "as": "lookup_key",
+          "expr": "datum.Year + '_' + datum.country"
+        }
+      ]
+    },
+    {
+      "name": "fromAus",
+      "url": "data/points_from_aus.csv",
+      "format": {
+        "type": "csv",
+        "parse": {
+          "Year": "number",
+          "Points": "number"
+        }
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "isValid(datum.Country) && isValid(datum.Points) && datum.Points > 0"
+        },
+        {
+          "type": "formula",
+          "as": "country",
+          "expr": "datum.Country"
+        },
+        {
+          "type": "formula",
+          "as": "gave",
+          "expr": "datum.Points"
+        },
+        {
+          "type": "formula",
+          "as": "lookup_key",
+          "expr": "datum.Year + '_' + datum.country"
+        }
+      ]
+    },
+    {
+      "name": "joined",
+      "source": "fromAus",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "toAus",
+          "key": "lookup_key",
+          "fields": [
+            "lookup_key"
+          ],
+          "values": [
+            "received"
+          ],
+          "as": [
+            "received"
+          ],
+          "default": 0
+        },
+        {
+          "type": "filter",
+          "expr": "isValid(datum.country) && isValid(datum.Year)"
+        },
+        {
+          "type": "formula",
+          "as": "net",
+          "expr": "clamp(datum.gave - datum.received, -25, 25)"
+        },
+        {
+          "type": "formula",
+          "as": "absNet",
+          "expr": "abs(datum.gave - datum.received)"
+        },
+        {
+          "type": "formula",
+          "as": "direction",
+          "expr": "datum.gave - datum.received > 0 ? 'Aus Gave More' : (datum.gave - datum.received < 0 ? 'Aus Received More' : 'Even')"
+        }
+      ]
+    },
+    {
+      "name": "missingReceived",
+      "source": "toAus",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "fromAus",
+          "key": "lookup_key",
+          "fields": [
+            "lookup_key"
+          ],
+          "values": [
+            "gave"
+          ],
+          "as": [
+            "gave"
+          ],
+          "default": 0
+        },
+        {
+          "type": "filter",
+          "expr": "datum.gave === 0 && datum.received > 0"
+        },
+        {
+          "type": "formula",
+          "as": "net",
+          "expr": "clamp(0 - datum.received, -25, 25)"
+        },
+        {
+          "type": "formula",
+          "as": "country",
+          "expr": "datum['Voting Country']"
+        },
+        {
+          "type": "formula",
+          "as": "absNet",
+          "expr": "datum.received"
+        },
+        {
+          "type": "formula",
+          "as": "direction",
+          "expr": "'Aus Received More'"
+        }
+      ]
+    },
+    {
+      "name": "allDifferences",
+      "source": [
+        "joined",
+        "missingReceived"
+      ],
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "isValid(datum.country) && isValid(datum.Year)"
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": "absNet",
+            "order": "descending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "countryOrder",
+      "source": "allDifferences",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": [
+            "country"
+          ],
+          "ops": [
+            "sum"
+          ],
+          "fields": [
+            "absNet"
+          ],
+          "as": [
+            "totalAbs"
+          ]
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": "totalAbs",
+            "order": "descending"
+          }
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "band",
+      "domain": {
+        "data": "allDifferences",
+        "field": "Year",
+        "sort": true
+      },
+      "range": [
+        0,
+        {
+          "signal": "width"
+        }
+      ],
+      "padding": 0.05
+    },
+    {
+      "name": "y",
+      "type": "band",
+      "domain": {
+        "data": "countryOrder",
+        "field": "country"
+      },
+      "range": [
+        0,
+        {
+          "signal": "height"
+        }
+      ],
+      "padding": 0.05
+    },
+    {
+      "name": "color",
+      "type": "linear",
+      "domain": [
+        -25,
+        -12.5,
+        0,
+        12.5,
+        25
+      ],
+      "range": [
+        "#f5c842",
+        "#d4b84a",
+        "#C8C8C8",
+        "#5fba7d",
+        "#1DB954"
+      ],
+      "clamp": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "top",
+      "title": "Year",
+      "labelFontSize": 11,
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "titleFontSize": 12,
+      "ticks": false,
+      "domain": true,
+      "grid": false,
+      "labelPadding": 6
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "title": null,
+      "labelFontSize": 11,
+      "labelColor": "#e0e0e0",
+      "labelLimit": 130,
+      "ticks": false,
+      "domain": false,
+      "grid": false,
+      "titleColor": "#e0e0e0"
+    }
+  ],
+  "marks": [
+    {
+      "type": "rect",
+      "from": {
+        "data": "allDifferences"
+      },
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "x",
+            "field": "Year"
+          },
+          "width": {
+            "scale": "x",
+            "band": 1
+          },
+          "y": {
+            "scale": "y",
+            "field": "country"
+          },
+          "height": {
+            "scale": "y",
+            "band": 1
+          },
+          "fill": {
+            "scale": "color",
+            "field": "net"
+          },
+          "stroke": {
+            "value": "white"
+          },
+          "strokeWidth": {
+            "value": 1
+          },
+          "tooltip": {
+            "signal": "{\"Country\": datum.country, \"Year\": datum.Year, \"Australia Gave\": datum.gave + ' pts', \"Australia Received\": datum.received + ' pts', \"Net Difference\": (datum.gave - datum.received > 0 ? '+' : '') + (datum.gave - datum.received) + ' pts', \"Status\": datum.direction}"
+          }
+        }
+      }
+    }
+  ],
+  "legends": [
+    {
+      "fill": "color",
+      "title": "Net Difference",
+      "titleColor": "#e0e0e0",
+      "titleFontSize": 11,
+      "labelFontSize": 11,
+      "labelColor": "#e0e0e0",
+      "orient": "right",
+      "direction": "vertical",
+      "offset": 15,
+      "padding": 5,
+      "gradientLength": 200,
+      "gradientThickness": 15,
+      "format": "d",
+      "values": [
+        -25,
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25
+      ]
+    }
+  ]
+}

@@ -1,0 +1,413 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Australia jury vs televote points awarded",
+  "height": 800,
+  "config": {
+    "view": {
+      "stroke": null,
+      "fill": "transparent"
+    },
+    "axis": {
+      "domainColor": "#555",
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "gridColor": "#444444",
+      "tickColor": "#555"
+    },
+    "background": "transparent",
+    "font": "sans-serif",
+    "legend": {
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0"
+    },
+    "title": {
+      "offset": 4
+    }
+  },
+  "layer": [
+    {
+      "comment": "sight lines",
+      "mark": {
+        "type": "rule",
+        "color": "#555555",
+        "strokeWidth": 8,
+        "opacity": 0.5
+      },
+      "data": {
+        "url": "data/points_from_aus.csv",
+        "format": {
+          "type": "csv"
+        }
+      },
+      "transform": [
+        {
+          "filter": "datum['Points J'] != null && datum['Points T'] != null"
+        },
+        {
+          "fold": [
+            "Points J",
+            "Points T"
+          ],
+          "as": [
+            "vote_type",
+            "points"
+          ]
+        },
+        {
+          "calculate": "toNumber(datum.points)",
+          "as": "points"
+        },
+        {
+          "filter": "datum.points > 0"
+        }
+      ],
+      "encoding": {
+        "y": {
+          "field": "Country",
+          "type": "nominal",
+          "sort": {
+            "op": "count",
+            "field": "points",
+            "order": "descending"
+          }
+        }
+      }
+    },
+    {
+      "comment": "2020 cancelled vertical rule",
+      "data": {
+        "values": [
+          {
+            "x": 2020
+          }
+        ]
+      },
+      "mark": {
+        "type": "rule",
+        "color": "#666666",
+        "strokeWidth": 1,
+        "strokeDash": [
+          4,
+          3
+        ]
+      },
+      "encoding": {
+        "x": {
+          "field": "x",
+          "type": "quantitative",
+          "scale": {
+            "domain": [
+              2015.5,
+              2026.8
+            ]
+          }
+        }
+      }
+    },
+    {
+      "comment": "2020 cancelled label",
+      "data": {
+        "values": [
+          {
+            "x": 2020
+          }
+        ]
+      },
+      "mark": {
+        "type": "text",
+        "text": "Cancelled due to Covid-19 restrictions",
+        "angle": 270,
+        "fontSize": 11,
+        "color": "#dddddd",
+        "dy": 0,
+        "dx": 0
+      },
+      "encoding": {
+        "x": {
+          "field": "x",
+          "type": "quantitative",
+          "scale": {
+            "domain": [
+              2015.5,
+              2026.8
+            ]
+          }
+        },
+        "y": {
+          "value": 350
+        }
+      }
+    },
+    {
+      "comment": "dots",
+      "mark": {
+        "type": "point",
+        "filled": true,
+        "opacity": 0.85
+      },
+      "data": {
+        "url": "data/points_from_aus.csv",
+        "format": {
+          "type": "csv"
+        }
+      },
+      "transform": [
+        {
+          "filter": "datum['Points J'] != null && datum['Points T'] != null"
+        },
+        {
+          "fold": [
+            "Points J",
+            "Points T"
+          ],
+          "as": [
+            "vote_type",
+            "points"
+          ]
+        },
+        {
+          "calculate": "toNumber(datum.points)",
+          "as": "points"
+        },
+        {
+          "filter": "datum.points > 0"
+        },
+        {
+          "calculate": "datum.vote_type === 'Points J' ? 'jury' : 'tele'",
+          "as": "vote_type"
+        },
+        {
+          "calculate": "toNumber(datum.Year)",
+          "as": "year"
+        },
+        {
+          "calculate": "datum.vote_type === 'jury' ? datum.year - 0.18 : datum.year + 0.18",
+          "as": "x_pos"
+        },
+        {
+          "calculate": "datum.points === 1 ? 20 : datum.points === 2 ? 40 : datum.points === 3 ? 65 : datum.points === 4 ? 95 : datum.points === 5 ? 130 : datum.points === 6 ? 170 : datum.points === 7 ? 215 : datum.points === 8 ? 265 : datum.points === 10 ? 325 : 390",
+          "as": "dot_size"
+        },
+        {
+          "calculate": "datum.vote_type === 'jury' ? 'Jury' : 'Televote'",
+          "as": "vote_type_display"
+        }
+      ],
+      "encoding": {
+        "x": {
+          "field": "x_pos",
+          "type": "quantitative",
+          "scale": {
+            "domain": [
+              2015.5,
+              2026.8
+            ]
+          },
+          "axis": {
+            "title": null,
+            "values": [
+              2016,
+              2017,
+              2018,
+              2019,
+              2020,
+              2021,
+              2022,
+              2023,
+              2024,
+              2025,
+              2026
+            ],
+            "format": "d",
+            "labelAngle": -45,
+            "grid": true,
+            "gridColor": "#3a3a3a",
+            "tickColor": "#555",
+            "labelColor": "#e0e0e0"
+          }
+        },
+        "y": {
+          "field": "Country",
+          "type": "nominal",
+          "sort": {
+            "op": "count",
+            "field": "points",
+            "order": "descending"
+          },
+          "axis": {
+            "title": null,
+            "labelFontSize": 11,
+            "labelColor": "#e0e0e0"
+          }
+        },
+        "size": {
+          "field": "dot_size",
+          "type": "quantitative",
+          "scale": {
+            "type": "identity"
+          },
+          "legend": {
+            "title": "Points",
+            "symbolFillColor": "#888",
+            "labelColor": "#e0e0e0",
+            "titleColor": "#e0e0e0",
+            "values": [
+              20,
+              40,
+              65,
+              95,
+              130,
+              170,
+              215,
+              265,
+              325,
+              390
+            ],
+            "labelExpr": "datum.value === 20 ? '1' : datum.value === 40 ? '2' : datum.value === 65 ? '3' : datum.value === 95 ? '4' : datum.value === 130 ? '5' : datum.value === 170 ? '6' : datum.value === 215 ? '7' : datum.value === 265 ? '8' : datum.value === 325 ? '10' : '12'"
+          }
+        },
+        "color": {
+          "field": "vote_type",
+          "type": "nominal",
+          "scale": {
+            "domain": [
+              "jury",
+              "tele"
+            ],
+            "range": [
+              "#1E88E5",
+              "#E91E8C"
+            ]
+          },
+          "legend": {
+            "title": "Vote type",
+            "labelExpr": "datum.label === 'jury' ? 'Jury' : 'Televote'",
+            "symbolType": "circle",
+            "labelColor": "#e0e0e0",
+            "titleColor": "#e0e0e0"
+          }
+        },
+        "tooltip": [
+          {
+            "field": "Country",
+            "type": "nominal",
+            "title": "Country"
+          },
+          {
+            "field": "year",
+            "type": "ordinal",
+            "title": "Year"
+          },
+          {
+            "field": "vote_type_display",
+            "type": "nominal",
+            "title": "Vote type"
+          },
+          {
+            "field": "points",
+            "type": "quantitative",
+            "title": "Points"
+          }
+        ]
+      }
+    },
+    {
+      "comment": "invisible layer just to drive the size legend",
+      "mark": {
+        "type": "point",
+        "filled": true,
+        "opacity": 0,
+        "size": 1
+      },
+      "data": {
+        "values": [
+          {
+            "pts": 1,
+            "sz": 20
+          },
+          {
+            "pts": 2,
+            "sz": 40
+          },
+          {
+            "pts": 3,
+            "sz": 65
+          },
+          {
+            "pts": 4,
+            "sz": 95
+          },
+          {
+            "pts": 5,
+            "sz": 130
+          },
+          {
+            "pts": 6,
+            "sz": 170
+          },
+          {
+            "pts": 7,
+            "sz": 215
+          },
+          {
+            "pts": 8,
+            "sz": 265
+          },
+          {
+            "pts": 10,
+            "sz": 325
+          },
+          {
+            "pts": 12,
+            "sz": 390
+          }
+        ]
+      },
+      "encoding": {
+        "size": {
+          "field": "sz",
+          "type": "quantitative",
+          "scale": {
+            "type": "identity"
+          },
+          "legend": {
+            "title": "Points",
+            "symbolFillColor": "#888",
+            "labelColor": "#e0e0e0",
+            "titleColor": "#e0e0e0",
+            "values": [
+              20,
+              40,
+              65,
+              95,
+              130,
+              170,
+              215,
+              265,
+              325,
+              390
+            ],
+            "labelExpr": "datum.value === 20 ? '1' : datum.value === 40 ? '2' : datum.value === 65 ? '3' : datum.value === 95 ? '4' : datum.value === 130 ? '5' : datum.value === 170 ? '6' : datum.value === 215 ? '7' : datum.value === 265 ? '8' : datum.value === 325 ? '10' : '12'"
+          }
+        },
+        "x": {
+          "value": 0
+        },
+        "y": {
+          "value": 0
+        }
+      }
+    }
+  ],
+  "width": "container",
+  "title": {
+    "text": "Australia's Points Given to Other Countries",
+    "subtitle": "Jury vs Televote, by year",
+    "fontSize": 20,
+    "subtitleFontSize": 13,
+    "color": "#ffffff",
+    "subtitleColor": "#e0e0e0",
+    "anchor": "start",
+    "offset": 4
+  }
+}

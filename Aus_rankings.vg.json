@@ -1,0 +1,829 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "title": {
+    "text": "Australia's Grand Finals Ranking History",
+    "fontSize": 20,
+    "subtitleFontSize": 13,
+    "anchor": "start",
+    "offset": 20,
+    "color": "#ffffff",
+    "subtitleColor": "#e0e0e0"
+  },
+  "config": {
+    "background": "transparent"
+  },
+  "width": 300,
+  "height": 480,
+  "padding": {
+    "top": 20,
+    "left": 10,
+    "right": 110,
+    "bottom": 40
+  },
+  "signals": [
+    {
+      "name": "years",
+      "value": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2022,
+        2023,
+        2026
+      ]
+    },
+    {
+      "name": "numYears",
+      "update": "length(years)"
+    },
+    {
+      "name": "animDuration",
+      "value": 180
+    },
+    {
+      "name": "isPlaying",
+      "value": true
+    },
+    {
+      "name": "selectedYear",
+      "value": null
+    },
+    {
+      "name": "tRaw",
+      "value": 0,
+      "on": [
+        {
+          "events": {
+            "type": "timer",
+            "throttle": 16
+          },
+          "update": "isPlaying && selectedYear === null ? (tRaw + 1) % (numYears * animDuration) : tRaw"
+        }
+      ]
+    },
+    {
+      "name": "fromIndex",
+      "update": "floor(tRaw / animDuration) % numYears"
+    },
+    {
+      "name": "toIndex",
+      "update": "(fromIndex + 1) % numYears"
+    },
+    {
+      "name": "progress",
+      "update": "(tRaw % animDuration) / animDuration"
+    },
+    {
+      "name": "eased",
+      "update": "progress < 0.5 ? 2 * progress * progress : 1 - pow(-2 * progress + 2, 2) / 2"
+    },
+    {
+      "name": "currentYear",
+      "update": "selectedYear !== null ? selectedYear : years[fromIndex]"
+    },
+    {
+      "name": "interpFromYear",
+      "update": "selectedYear !== null ? selectedYear : years[fromIndex]"
+    },
+    {
+      "name": "interpToYear",
+      "update": "selectedYear !== null ? selectedYear : years[toIndex]"
+    },
+    {
+      "name": "useInterpolation",
+      "update": "selectedYear === null && progress > 0 && progress < 1"
+    },
+    {
+      "name": "interpYear",
+      "update": "selectedYear !== null ? selectedYear : (useInterpolation && toIndex > fromIndex ? (years[fromIndex] + (years[toIndex] - years[fromIndex]) * eased) : years[fromIndex])"
+    }
+  ],
+  "data": [
+    {
+      "name": "raw",
+      "url": "data/eurovision_points.csv",
+      "format": {
+        "type": "csv"
+      }
+    },
+    {
+      "name": "processed",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "cleanCountry",
+          "expr": "datum.Country ? lower(datum.Country) : (datum.country ? lower(datum.country) : (datum.Contestant ? lower(datum.Contestant) : ''))"
+        },
+        {
+          "type": "filter",
+          "expr": "datum.cleanCountry === 'australia' || datum.cleanCountry === 'aus'"
+        },
+        {
+          "type": "formula",
+          "as": "final_rank",
+          "expr": "parseInt(datum['Pl.'])"
+        },
+        {
+          "type": "formula",
+          "as": "jury_rank",
+          "expr": "parseInt(datum['Pl. J'])"
+        },
+        {
+          "type": "formula",
+          "as": "televote_rank",
+          "expr": "parseInt(datum['Pl. T'])"
+        },
+        {
+          "type": "formula",
+          "as": "cleanYear",
+          "expr": "parseInt(datum.Year)"
+        },
+        {
+          "type": "filter",
+          "expr": "!isNaN(datum.final_rank) && !isNaN(datum.cleanYear)"
+        }
+      ]
+    },
+    {
+      "name": "linesData",
+      "source": "processed",
+      "transform": [
+        {
+          "type": "fold",
+          "fields": [
+            "final_rank",
+            "jury_rank",
+            "televote_rank"
+          ],
+          "as": [
+            "Rank Type",
+            "Rank"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "Rank Label",
+          "expr": "datum['Rank Type'] === 'final_rank' ? 'Final Rank' : datum['Rank Type'] === 'jury_rank' ? 'Jury Rank' : 'Televote Rank'"
+        }
+      ]
+    },
+    {
+      "name": "animatedLinesData",
+      "source": "linesData",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.cleanYear <= currentYear"
+        }
+      ]
+    },
+    {
+      "name": "fromFolded",
+      "source": "processed",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.cleanYear === interpFromYear"
+        },
+        {
+          "type": "fold",
+          "fields": [
+            "final_rank",
+            "jury_rank",
+            "televote_rank"
+          ],
+          "as": [
+            "Rank Type",
+            "fromRank"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "toFolded",
+      "source": "processed",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.cleanYear === interpToYear"
+        },
+        {
+          "type": "fold",
+          "fields": [
+            "final_rank",
+            "jury_rank",
+            "televote_rank"
+          ],
+          "as": [
+            "Rank Type",
+            "toRank"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rankTypes",
+      "values": [
+        {
+          "Rank Type": "final_rank",
+          "Rank Label": "Final Rank"
+        },
+        {
+          "Rank Type": "jury_rank",
+          "Rank Label": "Jury Rank"
+        },
+        {
+          "Rank Type": "televote_rank",
+          "Rank Label": "Televote Rank"
+        }
+      ]
+    },
+    {
+      "name": "interpolatedRanks",
+      "source": "rankTypes",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "fromFolded",
+          "key": "Rank Type",
+          "fields": [
+            "Rank Type"
+          ],
+          "values": [
+            "fromRank"
+          ],
+          "as": [
+            "fromRank"
+          ]
+        },
+        {
+          "type": "lookup",
+          "from": "toFolded",
+          "key": "Rank Type",
+          "fields": [
+            "Rank Type"
+          ],
+          "values": [
+            "toRank"
+          ],
+          "as": [
+            "toRank"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "interpRank",
+          "expr": "useInterpolation && toIndex > fromIndex ? (datum.fromRank + (datum.toRank - datum.fromRank) * eased) : datum.fromRank"
+        },
+        {
+          "type": "formula",
+          "as": "displayRank",
+          "expr": "round(datum.interpRank)"
+        }
+      ]
+    },
+    {
+      "name": "yearList",
+      "values": [
+        {
+          "year": 2015
+        },
+        {
+          "year": 2016
+        },
+        {
+          "year": 2017
+        },
+        {
+          "year": 2018
+        },
+        {
+          "year": 2019
+        },
+        {
+          "year": 2022
+        },
+        {
+          "year": 2023
+        },
+        {
+          "year": 2026
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "domain": [
+        2015,
+        2026
+      ],
+      "zero": false,
+      "range": [
+        0,
+        {
+          "signal": "width"
+        }
+      ],
+      "nice": false
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "domain": [
+        1,
+        26
+      ],
+      "range": [
+        0,
+        {
+          "signal": "height"
+        }
+      ],
+      "zero": false,
+      "nice": false
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": [
+        "Final Rank",
+        "Jury Rank",
+        "Televote Rank"
+      ],
+      "range": [
+        "#f5c842",
+        "#1E88E5",
+        "#E91E8C"
+      ]
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom",
+      "title": "Year",
+      "titleFontSize": 12,
+      "labelFontSize": 11,
+      "grid": true,
+      "gridOpacity": 0.08,
+      "tickValues": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2022,
+        2023,
+        2026
+      ],
+      "format": "d",
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "gridColor": "#ffffff"
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "title": "Rank Position (Rank 1 at Top)",
+      "titleFontSize": 12,
+      "labelFontSize": 11,
+      "grid": true,
+      "gridOpacity": 0.08,
+      "tickCount": 10,
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "gridColor": "#ffffff"
+    }
+  ],
+  "legends": [
+    {
+      "stroke": "color",
+      "title": "Rank Type",
+      "orient": "top",
+      "direction": "horizontal",
+      "offset": 10,
+      "padding": 8,
+      "labelFontSize": 11,
+      "titleFontSize": 11,
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0"
+    }
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "from": {
+        "facet": {
+          "name": "series",
+          "data": "animatedLinesData",
+          "groupby": "Rank Label"
+        }
+      },
+      "marks": [
+        {
+          "type": "line",
+          "from": {
+            "data": "series"
+          },
+          "encode": {
+            "enter": {
+              "stroke": {
+                "scale": "color",
+                "field": "Rank Label"
+              },
+              "strokeWidth": {
+                "value": 3.5
+              },
+              "strokeCap": {
+                "value": "round"
+              },
+              "strokeJoin": {
+                "value": "round"
+              }
+            },
+            "update": {
+              "x": {
+                "scale": "x",
+                "field": "cleanYear"
+              },
+              "y": {
+                "scale": "y",
+                "field": "Rank"
+              },
+              "strokeOpacity": {
+                "value": 0.8
+              }
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "from": {
+            "data": "series"
+          },
+          "encode": {
+            "enter": {
+              "fill": {
+                "scale": "color",
+                "field": "Rank Label"
+              },
+              "size": {
+                "value": 70
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "x": {
+                "scale": "x",
+                "field": "cleanYear"
+              },
+              "y": {
+                "scale": "y",
+                "field": "Rank"
+              },
+              "fillOpacity": {
+                "value": 0.6
+              },
+              "strokeOpacity": {
+                "value": 1
+              },
+              "tooltip": {
+                "signal": "{'Year': datum.cleanYear, 'Type': datum['Rank Label'], 'Rank': datum.Rank}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "rule",
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "x",
+            "signal": "interpYear"
+          },
+          "y": {
+            "value": 0
+          },
+          "y2": {
+            "signal": "height"
+          },
+          "stroke": {
+            "value": "#888"
+          },
+          "strokeWidth": {
+            "value": 1.2
+          },
+          "strokeDash": {
+            "value": [
+              4,
+              4
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "from": {
+        "data": "interpolatedRanks"
+      },
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "x",
+            "signal": "interpYear"
+          },
+          "y": {
+            "scale": "y",
+            "field": "interpRank"
+          },
+          "fill": {
+            "scale": "color",
+            "field": "Rank Label"
+          },
+          "stroke": {
+            "value": "white"
+          },
+          "strokeWidth": {
+            "value": 2
+          },
+          "size": {
+            "value": 140
+          },
+          "tooltip": {
+            "signal": "{'Year': currentYear, 'Type': datum['Rank Label'], 'Rank': datum.displayRank}"
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {
+        "data": "interpolatedRanks"
+      },
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "x",
+            "signal": "interpYear"
+          },
+          "y": {
+            "scale": "y",
+            "field": "interpRank"
+          },
+          "dx": {
+            "value": 12
+          },
+          "dy": {
+            "value": -4
+          },
+          "text": {
+            "signal": "datum.displayRank"
+          },
+          "fill": {
+            "value": "#e0e0e0"
+          },
+          "fontWeight": {
+            "value": "bold"
+          },
+          "fontSize": {
+            "value": 12
+          }
+        }
+      }
+    },
+    {
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {
+            "signal": "width + 5"
+          },
+          "y": {
+            "value": 20
+          }
+        }
+      },
+      "signals": [
+        {
+          "name": "selectedYear",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "datum.year"
+            },
+            {
+              "events": "@playPauseRect:click, @playPauseText:click",
+              "update": "null"
+            }
+          ]
+        },
+        {
+          "name": "isPlaying",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "false"
+            },
+            {
+              "events": "@playPauseRect:click, @playPauseText:click",
+              "update": "!isPlaying"
+            }
+          ]
+        },
+        {
+          "name": "tRaw",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "indexof(years, datum.year) * animDuration"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "y": {
+                "value": -10
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fontSize": {
+                "value": 12
+              },
+              "fill": {
+                "value": "#e0e0e0"
+              },
+              "text": {
+                "value": "Year Select"
+              }
+            }
+          }
+        },
+        {
+          "name": "yearBtnRect",
+          "type": "rect",
+          "from": {
+            "data": "yearList"
+          },
+          "encode": {
+            "enter": {
+              "width": {
+                "value": 80
+              },
+              "height": {
+                "value": 30
+              },
+              "cornerRadius": {
+                "value": 6
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "y": {
+                "signal": "indexof(years, datum.year) * 36"
+              },
+              "fill": {
+                "signal": "datum.year === currentYear ? '#2c3e50' : '#3a3a3a'"
+              },
+              "stroke": {
+                "signal": "datum.year === currentYear ? '#1a252f' : '#555555'"
+              },
+              "strokeWidth": {
+                "value": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "yearBtnText",
+          "type": "text",
+          "from": {
+            "data": "yearList"
+          },
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fontSize": {
+                "value": 13
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "y": {
+                "signal": "(indexof(years, datum.year) * 36) + 19"
+              },
+              "text": {
+                "signal": "datum.year"
+              },
+              "fill": {
+                "signal": "datum.year === currentYear ? 'white' : '#cccccc'"
+              }
+            }
+          }
+        },
+        {
+          "name": "playPauseRect",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 0
+              },
+              "y": {
+                "value": 315
+              },
+              "width": {
+                "value": 80
+              },
+              "height": {
+                "value": 34
+              },
+              "cornerRadius": {
+                "value": 6
+              },
+              "cursor": {
+                "value": "pointer"
+              },
+              "fill": {
+                "value": "#e15759"
+              },
+              "fillOpacity": {
+                "value": 0.95
+              }
+            }
+          }
+        },
+        {
+          "name": "playPauseText",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "y": {
+                "value": 336
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontSize": {
+                "value": 12
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fill": {
+                "value": "white"
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "text": {
+                "signal": "isPlaying ? '\u23f8 Pause' : '\u25b6 Play'"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

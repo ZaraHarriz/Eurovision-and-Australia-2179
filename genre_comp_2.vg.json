@@ -1,0 +1,134 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Winning Genre Entries vs Asutralia's Entries",
+    "subtitle": "Winner genre · Australia's genre · placement (2015–2026)",
+    "fontSize": 20,
+    "subtitleFontSize": 13,
+    "anchor": "start",
+    "color": "#ffffff",
+    "subtitleColor": "#aaaaaa"
+  },
+  "width": "container",
+  "height": 300,
+  "background": "transparent",
+  "data": {
+    "url": "data/eurovision_song.csv",
+    "format": {
+      "type": "csv"
+    }
+  },
+  "transform": [
+    {
+      "filter": "datum.style != null && datum.style != ''"
+    },
+    {
+      "calculate": "toNumber(datum.Rank)",
+      "as": "Numeric_Rank"
+    },
+    {
+      "calculate": "datum.Rank === '1' ? 1 : 0",
+      "as": "is_winner"
+    },
+    {
+      "calculate": "lower(trim(datum.country)) == 'australia' ? 1 : 0",
+      "as": "is_australia"
+    },
+    {
+      "calculate": "lower(trim(datum.country)) == 'australia' ? toNumber(datum.Rank) : null",
+      "as": "Only_Aus_Rank"
+    },
+    {
+      "joinaggregate": [
+        {"op": "max", "field": "is_winner", "as": "any_winner"},
+        {"op": "max", "field": "is_australia", "as": "any_australia"}
+      ],
+      "groupby": ["year", "style"]
+    },
+    {
+      "joinaggregate": [
+        {"op": "min", "field": "Only_Aus_Rank", "as": "aus_rank"}
+      ],
+      "groupby": ["year"]
+    },
+    {
+      "filter": "datum.any_winner == 1 || datum.any_australia == 1"
+    },
+    {
+      "calculate": "datum.any_winner == 1 && datum.any_australia == 1 ? 'Matched Style' : (datum.any_winner == 1 ? 'Winning Style' : 'Australia Entry')",
+      "as": "Performance_Type"
+    },
+    {
+      "calculate": "datum.aus_rank > 0 ? datum.aus_rank : 'DNQ'",
+      "as": "Aus_Placement"
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "year",
+      "type": "ordinal",
+      "title": "Year",
+      "axis": {
+        "labelAngle": -45,
+        "labelFontSize": 11,
+        "labelColor": "#aaaaaa",
+        "titleColor": "#ffffff",
+        "grid": true,
+        "gridColor": "#2d2d2d"
+      }
+    },
+    "y": {
+      "field": "style",
+      "type": "nominal",
+      "title": "Musical Genre",
+      "sort": {
+        "op": "sum",
+        "field": "is_winner",
+        "order": "descending"
+      },
+      "axis": {
+        "labelFontSize": 11,
+        "labelColor": "#aaaaaa",
+        "titleColor": "#ffffff",
+        "grid": true,
+        "gridColor": "#2d2d2d"
+      }
+    }
+  },
+  "layer": [
+    {
+      "mark": {
+        "type": "circle",
+        "opacity": 0.9,
+        "strokeWidth": 0,
+        "size": 250
+      },
+      "encoding": {
+        "color": {
+          "field": "Performance_Type",
+          "type": "nominal",
+          "title": "Entry Status",
+          "scale": {
+            "domain": ["Winning Style", "Australia Entry", "Matched Style"],
+            "range": ["#f5c842", "#1DB954", "#E91E8C"]
+          },
+          "legend": {
+            "orient": "bottom",
+            "titleColor": "#ffffff",
+            "labelColor": "#aaaaaa",
+            "offset": 15
+          }
+        },
+        "tooltip": [
+          {"field": "year", "type": "quantitative", "title": "Year"},
+          {"field": "style", "type": "nominal", "title": "Genre"},
+          {"field": "Performance_Type", "type": "nominal", "title": "Type"},
+          {"field": "Aus_Placement", "type": "nominal", "title": "Australia Placement"}
+        ]
+      }
+    }
+  ],
+  "config": {
+    "view": {"stroke": "transparent"}
+  }
+}

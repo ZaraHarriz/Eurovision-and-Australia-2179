@@ -1,0 +1,245 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Asutralian Entries vs. Winning Keys",
+    "color": "#ffffff",
+    "fontSize": 20,
+    "anchor": "start",
+    "padding": 20
+  },
+  "width": "container",
+  "height": 400,
+  "autosize": {
+    "type": "fit",
+    "contains": "padding"
+  },
+  "background": "transparent",
+  "layer": [
+    {
+      "title": "Australia Bars",
+      "data": {
+        "url": "data/Eurovision_song.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {
+          "filter": "lower(trim(datum.country)) == 'australia' && datum.key != '-' && datum.key != null"
+        },
+        {
+          "calculate": "datum.qualified_10 == '1' || datum.qualified_10 == '1.0' || datum.year == '2015' ? '' + parseInt(datum.Rank) : 'DNQ'",
+          "as": "individual_label"
+        },
+        {
+          "window": [{"op": "row_number", "as": "row_in_group"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}]
+        },
+        {
+          "window": [{"op": "lag", "field": "individual_label", "param": 1, "as": "prev_label"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}]
+        },
+        {
+          "calculate": "datum.row_in_group == 1 ? datum.individual_label : datum.prev_label + ' / ' + datum.individual_label",
+          "as": "running_label"
+        },
+        {
+          "window": [{"op": "last_value", "field": "running_label", "as": "combined_label"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}],
+          "frame": [null, null]
+        },
+        {
+          "aggregate": [
+            {"op": "count", "as": "CountPerKey"},
+            {"op": "max", "field": "combined_label", "as": "combined_label"}
+          ],
+          "groupby": ["key"]
+        },
+        {
+          "joinaggregate": [{"op": "sum", "field": "CountPerKey", "as": "TotalAusSongs"}]
+        },
+        {
+          "calculate": "datum.CountPerKey / datum.TotalAusSongs",
+          "as": "proportion"
+        },
+        {
+          "calculate": "'Australia'",
+          "as": "Category"
+        }
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 1.0
+      },
+      "encoding": {
+        "x": {
+          "field": "key",
+          "type": "nominal",
+          "title": "Musical Key",
+          "scale": {"paddingInner": 0.4, "paddingOuter": 0.2},
+          "axis": {"labelAngle": -45, "labelFontSize": 9, "labelColor": "#aaaaaa", "titleColor": "#ffffff"},
+          "sort": {"field": "proportion", "op": "max", "order": "descending"}
+        },
+        "xOffset": {"datum": "Australia"},
+        "y": {
+          "field": "proportion",
+          "type": "quantitative",
+          "title": "Proportion of Performances",
+          "scale": {"domain": [0, 0.2]},
+          "axis": {"format": ".0%", "titleFontSize": 11, "labelColor": "#aaaaaa", "titleColor": "#ffffff", "gridColor": "#2d2d2d"}
+        },
+        "color": {
+          "field": "Category",
+          "type": "nominal",
+          "scale": {
+            "domain": ["Australia", "Winners"],
+            "range": ["#1DB954", "#f5c842"]
+          }
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "key", "type": "nominal", "title": "Musical Key"},
+          {"field": "CountPerKey", "title": "Count", "format": "d"},
+          {"field": "proportion", "title": "Proportion", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Winners Bars",
+      "data": {
+        "url": "data/Eurovision_song.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {
+          "filter": "datum.key != '-' && datum.key != null && toNumber(datum.Rank) == 1"
+        },
+        {
+          "aggregate": [{"op": "count", "as": "CountPerKey"}],
+          "groupby": ["key"]
+        },
+        {
+          "joinaggregate": [{"op": "sum", "field": "CountPerKey", "as": "TotalWinners"}]
+        },
+        {
+          "calculate": "datum.CountPerKey / datum.TotalWinners",
+          "as": "proportion"
+        },
+        {
+          "calculate": "'Winners'",
+          "as": "Category"
+        }
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 1.0
+      },
+      "encoding": {
+        "x": {
+          "field": "key",
+          "type": "nominal"
+        },
+        "xOffset": {"datum": "Winners"},
+        "y": {
+          "field": "proportion",
+          "type": "quantitative"
+        },
+        "color": {
+          "field": "Category",
+          "type": "nominal"
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "key", "type": "nominal", "title": "Musical Key"},
+          {"field": "CountPerKey", "title": "Count", "format": "d"},
+          {"field": "proportion", "title": "Proportion", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Australia Labels (top layer)",
+      "data": {
+        "url": "data/Eurovision_song.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {
+          "filter": "lower(trim(datum.country)) == 'australia' && datum.key != '-' && datum.key != null"
+        },
+        {
+          "calculate": "datum.qualified_10 == '1' || datum.qualified_10 == '1.0' || datum.year == '2015' ? '' + parseInt(datum.Rank) : 'DNQ'",
+          "as": "individual_label"
+        },
+        {
+          "window": [{"op": "row_number", "as": "row_in_group"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}]
+        },
+        {
+          "window": [{"op": "lag", "field": "individual_label", "param": 1, "as": "prev_label"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}]
+        },
+        {
+          "calculate": "datum.row_in_group == 1 ? datum.individual_label : datum.prev_label + ' / ' + datum.individual_label",
+          "as": "running_label"
+        },
+        {
+          "window": [{"op": "last_value", "field": "running_label", "as": "combined_label"}],
+          "groupby": ["key"],
+          "sort": [{"field": "year", "order": "ascending"}],
+          "frame": [null, null]
+        },
+        {
+          "aggregate": [
+            {"op": "count", "as": "CountPerKey"},
+            {"op": "max", "field": "combined_label", "as": "combined_label"}
+          ],
+          "groupby": ["key"]
+        },
+        {
+          "joinaggregate": [{"op": "sum", "field": "CountPerKey", "as": "TotalAusSongs"}]
+        },
+        {
+          "calculate": "datum.CountPerKey / datum.TotalAusSongs",
+          "as": "proportion"
+        }
+      ],
+      "mark": {
+        "type": "text",
+        "baseline": "bottom",
+        "dy": -6,
+        "fontSize": 9,
+        "fontWeight": "bold",
+        "color": "#ffffff"
+      },
+      "encoding": {
+        "x": {
+          "field": "key",
+          "type": "nominal",
+          "sort": {"field": "proportion", "op": "max", "order": "descending"}
+        },
+        "xOffset": {"datum": "Australia"},
+        "y": {
+          "field": "proportion",
+          "type": "quantitative"
+        },
+        "text": {
+          "field": "combined_label",
+          "type": "nominal"
+        }
+      }
+    }
+  ],
+  "config": {
+    "view": {"stroke": "transparent"},
+    "legend": {
+      "title": "Category",
+      "titleColor": "#ffffff",
+      "labelColor": "#aaaaaa",
+      "orient": "bottom",
+      "direction": "horizontal"
+    }
+  }
+}

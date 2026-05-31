@@ -1,0 +1,203 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Monthly Listeners vs. Final Rank",
+    "fontSize": 20,
+    "anchor": "start",
+    "color": "#ffffff"
+  },
+  "width": "container",
+  "height": 400,
+  "autosize": {
+    "type": "fit",
+    "contains": "padding"
+  },
+  "background": "transparent",
+  "data": {
+    "url": "data/australian_placements.csv",
+    "format": {
+      "type": "csv"
+    }
+  },
+  "transform": [
+    {
+      "calculate": "split(datum['Place'], '(')[0]",
+      "as": "Raw_Clean_Place"
+    },
+    {
+      "calculate": "toNumber(trim(datum['Raw_Clean_Place']))",
+      "as": "Rank"
+    },
+    {
+      "calculate": "replace(datum['Spotify streams'], ',', '')",
+      "as": "Streams_No_Comma"
+    },
+    {
+      "calculate": "toNumber(datum['Streams_No_Comma'])",
+      "as": "Monthly_Listeners_Numeric"
+    },
+    {
+      "calculate": "datum.Type == 'F' ? 1 : 0",
+      "as": "Is_Final_Row"
+    },
+    {
+      "joinaggregate": [
+        {
+          "op": "max",
+          "field": "Is_Final_Row",
+          "as": "Has_Final"
+        }
+      ],
+      "groupby": [
+        "Year"
+      ]
+    },
+    {
+      "filter": "datum.Type == 'F' || (datum.Has_Final == 0 && indexof(datum.Type, 'SF') == 0)"
+    },
+    {
+      "calculate": "datum.Type == 'F' ? 1 : 0",
+      "as": "Qualified"
+    },
+    {
+      "calculate": "datum.Qualified == 1 ? datum.Rank : 28",
+      "as": "Visual_Rank"
+    },
+    {
+      "calculate": "datum.Qualified == 1 ? 'Qualified' : 'Did Not Qualify'",
+      "as": "Status"
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "Year",
+      "type": "quantitative",
+      "axis": {
+        "format": "d",
+        "tickCount": 12,
+        "grid": true,
+        "gridDash": [
+          2,
+          2
+        ],
+        "gridColor": "#2d2d2d",
+        "titlePadding": 10,
+        "labelColor": "#aaaaaa",
+        "titleColor": "#ffffff"
+      },
+      "scale": {
+        "domain": [
+          2014,
+          2027
+        ]
+      }
+    },
+    "y": {
+      "field": "Visual_Rank",
+      "type": "quantitative",
+      "axis": {
+        "title": "Final Rank Achieved",
+        "grid": true,
+        "gridDash": [
+          2,
+          2
+        ],
+        "gridColor": "#2d2d2d",
+        "labelColor": "#aaaaaa",
+        "titleColor": "#ffffff",
+        "values": [
+          2,
+          4,
+          5,
+          9,
+          15,
+          20,
+          28
+        ],
+        "labelExpr": "datum.value == 28 ? '❌ DNQ' : datum.value + (datum.value == 2 ? 'nd' : datum.value == 4 ? 'th' : datum.value == 5 ? 'th' : 'th')"
+      },
+      "scale": {
+        "domain": [
+          31,
+          1
+        ]
+      }
+    }
+  },
+  "layer": [
+    {
+      "mark": {
+        "type": "circle",
+        "opacity": 0.75,
+        "stroke": "black",
+        "strokeWidth": 1.2
+      },
+      "encoding": {
+        "size": {
+          "field": "Monthly_Listeners_Numeric",
+          "type": "quantitative",
+          "title": "Monthly Listeners",
+          "scale": {
+            "range": [
+              100,
+              2500
+            ]
+          },
+          "legend": {
+            "format": ".2s",
+            "titleColor": "#ffffff",
+            "labelColor": "#aaaaaa"
+          }
+        },
+        "color": {
+          "field": "Status",
+          "type": "nominal",
+          "title": "Status",
+          "scale": {
+            "domain": [
+              "Qualified",
+              "Did Not Qualify"
+            ],
+            "range": [
+              "#1DB954",
+              "#ff9800"
+            ]
+          },
+          "legend": {
+            "titleColor": "#ffffff",
+            "labelColor": "#aaaaaa",
+            "orient": "top"
+          }
+        },
+        "tooltip": [
+          {"field": "Year", "type": "quantitative"},
+          {"field": "Performer", "type": "nominal"},
+          {"field": "Song", "type": "nominal"},
+          {"field": "Spotify streams", "type": "nominal", "title": "Monthly Listeners"},
+          {"field": "Type", "type": "nominal", "title": "Furthest Stage"},
+          {"field": "Place", "type": "nominal", "title": "Stage Rank"}
+        ]
+      }
+    },
+    {
+      "mark": {
+        "type": "text",
+        "alignment": "center",
+        "baseline": "middle",
+        "fontSize": 9,
+        "color": "#ffffff"
+      },
+      "encoding": {
+        "text": {
+          "expr": "[datum.Performer, '(' + format(datum.Monthly_Listeners_Numeric, '.2s') + ')']"
+        },
+        "dy": {
+          "expr": "datum.Visual_Rank == 28 ? -22 : -18"
+        }
+      }
+    }
+  ],
+  "config": {
+    "view": {"stroke": "transparent"}
+  }
+}

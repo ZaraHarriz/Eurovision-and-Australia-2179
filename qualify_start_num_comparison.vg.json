@@ -1,0 +1,194 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Semi-Final Start Position",
+    "color": "#ffffff",
+    "fontSize": 20,
+    "anchor": "start"
+  },
+  "width": "container",
+  "height": 400,
+  "autosize": {
+    "type": "fit-x",
+    "contains": "padding",
+    "resize": false
+  },
+  "data": {
+    "url": "data/Eurovision_song.csv",
+    "format": {"type": "csv"}
+  },
+  "layer": [
+    {
+      "title": "Australia Semi-Final History",
+      "transform": [
+        {"filter": "datum.country == 'Australia'"},
+        {"filter": "isValid(datum.semi_draw_position) && datum.semi_draw_position != '' && datum.semi_draw_position != '-'"},
+        {"calculate": "parseInt(datum.semi_draw_position)", "as": "start_number"},
+        {
+          "aggregate": [{"op": "count", "as": "count"}],
+          "groupby": ["start_number"]
+        },
+        {"calculate": "datum.count / 9", "as": "proportion"},
+        {"calculate": "'Australia'", "as": "Category"}
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 1,
+        "width": {"band": 0.7},
+        "color": "#1DB954"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal",
+          "title": "Semi-Final Start Number",
+          "scale": {"domain": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},
+          "axis": {"labelAngle": -45, "labelFontSize": 9, "labelColor": "#aaaaaa", "titleColor": "#ffffff"}
+        },
+        "y": {
+          "field": "proportion",
+          "type": "quantitative",
+          "title": "Proportion of Total Entries",
+          "scale": {"domain": [0, 0.14]},
+          "axis": {"format": ".0%", "titleFontSize": 12, "labelColor": "#aaaaaa", "titleColor": "#ffffff"}
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "count", "title": "Occurrences from Spot", "format": "d"},
+          {"field": "proportion", "title": "Proportion of Aus Entries", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Overall Qualifiers Distribution",
+      "transform": [
+        {"filter": "isValid(datum.semi_draw_position) && datum.semi_draw_position != '' && datum.semi_draw_position != '-'"},
+        {"calculate": "parseInt(datum.semi_draw_position)", "as": "start_number"},
+        {"filter": "datum.qualified_10 == '1'"},
+        {
+          "aggregate": [{"op": "count", "as": "qualifiers_in_slot"}],
+          "groupby": ["start_number"]
+        },
+        {
+          "joinaggregate": [{"op": "sum", "field": "qualifiers_in_slot", "as": "total_qualifiers"}]
+        },
+        {"calculate": "datum.qualifiers_in_slot / datum.total_qualifiers", "as": "proportion"},
+        {"calculate": "'Overall Qualifiers'", "as": "Category"}
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 0.6,
+        "width": {"band": 0.7},
+        "color": "#f5c842"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal"
+        },
+        "y": {
+          "field": "proportion",
+          "type": "quantitative"
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "qualifiers_in_slot", "title": "Qualifiers from this Spot", "format": "d"},
+          {"field": "total_qualifiers", "title": "Total Semi-Final Qualifiers", "format": "d"},
+          {"field": "proportion", "title": "Proportion", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Australia Q/DNQ Text Labels",
+      "transform": [
+        {"filter": "datum.country == 'Australia'"},
+        {"filter": "isValid(datum.semi_draw_position) && datum.semi_draw_position != '' && datum.semi_draw_position != '-'"},
+        {"calculate": "parseInt(datum.semi_draw_position)", "as": "start_number"},
+        {
+          "aggregate": [
+            {"op": "count", "as": "total_spot_count"},
+            {"op": "sum", "field": "qualified_10", "as": "q_sum"}
+          ],
+          "groupby": ["start_number"]
+        },
+        {"calculate": "datum.total_spot_count / 9", "as": "bar_height"},
+        {"calculate": "datum.q_sum == datum.total_spot_count ? 'Q' : (datum.q_sum == 0 ? 'DNQ' : 'Q/DNQ')", "as": "qual_status"}
+      ],
+      "mark": {
+        "type": "text",
+        "baseline": "bottom",
+        "dy": -8,
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "#ffffff"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal"
+        },
+        "y": {
+          "field": "bar_height",
+          "type": "quantitative"
+        },
+        "text": {"field": "qual_status", "type": "nominal"}
+      }
+    },
+    {
+      "title": "Australia Song-Specific Tooltips",
+      "transform": [
+        {"filter": "datum.country == 'Australia'"},
+        {"filter": "isValid(datum.semi_draw_position) && datum.semi_draw_position != '' && datum.semi_draw_position != '-'"},
+        {"calculate": "parseInt(datum.semi_draw_position)", "as": "start_number"},
+        {
+          "joinaggregate": [
+            {"op": "count", "as": "total_spot_count"}
+          ],
+          "groupby": ["start_number"]
+        },
+        {"calculate": "datum.total_spot_count / 9", "as": "bar_height"},
+        {"calculate": "datum.qualified_10 == '1' ? 'Qualified' : 'DNQ'", "as": "Result"}
+      ],
+      "mark": {
+        "type": "text",
+        "baseline": "bottom",
+        "dy": -8,
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "opacity": 0
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal"
+        },
+        "y": {
+          "field": "bar_height",
+          "type": "quantitative"
+        },
+        "text": {"field": "Result", "type": "nominal"},
+        "tooltip": [
+          {"field": "year", "title": "Year"},
+          {"field": "artist_name", "title": "Artist"},
+          {"field": "song_name", "title": "Song"},
+          {"field": "Result", "title": "Status"}
+        ]
+      }
+    }
+  ],
+  "config": {
+    "background": "transparent",
+    "view": {"stroke": "transparent"},
+    "tooltip": {"theme": "custom"},
+    "axis": {
+      "labelFontSize": 9,
+      "titleFontSize": 12
+    },
+    "legend": {
+      "title": "Category",
+      "titleColor": "#ffffff",
+      "labelColor": "#aaaaaa",
+      "orient": "top-right"
+    }
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Start Position vs. Winning Outcomes",
+    "color": "#ffffff",
+    "fontSize": 20,
+    "anchor": "start"
+  },
+  "width": "container",
+  "height": 400,
+  "autosize": {
+    "type": "fit-x",
+    "contains": "padding",
+    "resize": false
+  },
+  "layer": [
+    {
+      "title": "Australia (Blue) - Bottom Layer",
+      "data": {
+        "url": "data/australian_placements.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {"filter": "datum.Type == 'F'"},
+        {"calculate": "parseFloat(datum['Start No.'])", "as": "start_number"},
+        {"filter": "isValid(datum.start_number)"},
+        {"aggregate": [{"op": "count", "as": "count"}], "groupby": ["start_number"]},
+        {"calculate": "datum.count / 9", "as": "proportion"},
+        {"calculate": "'Australia'", "as": "Category"}
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 1,
+        "width": {"band": 0.7},
+        "color": "#1DB954"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal",
+          "title": "Start Number",
+          "scale": {"domain": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]},
+          "axis": {"labelAngle": -45, "labelFontSize": 9, "labelColor": "#aaaaaa", "titleColor": "#ffffff"}
+        },
+        "y": {
+          "field": "proportion",
+          "type": "quantitative",
+          "title": "Proportion of Total Performances",
+          "scale": {"domain": [0, 0.15]},
+          "axis": {"format": ".0%", "titleFontSize": 12, "labelColor": "#aaaaaa", "titleColor": "#ffffff"}
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "count", "title": "Occurrences", "format": "d"},
+          {"field": "proportion", "title": "Proportion", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Winners (Yellow) - Top Layer",
+      "data": {
+        "url": "data/eurovision_winners.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {
+          "calculate": "parseFloat(datum['Start number'])",
+          "as": "start_number"
+        },
+        {
+          "calculate": "parseFloat(datum['Number of winners']) / 68",
+          "as": "proportion"
+        },
+        {
+          "calculate": "'Winners'",
+          "as": "Category"
+        }
+      ],
+      "mark": {
+        "type": "bar",
+        "opacity": 0.6,
+        "width": {"band": 0.7},
+        "color": "#f5c842"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal",
+          "scale": {"domain": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]}
+        },
+        "y": {
+          "field": "proportion",
+          "type": "quantitative",
+          "scale": {"domain": [0, 0.15]}
+        },
+        "tooltip": [
+          {"field": "Category", "title": "Category"},
+          {"field": "Number of winners", "title": "Occurrences", "format": "d"},
+          {"field": "proportion", "title": "Proportion", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "title": "Australia Final Placements - Text Labels",
+      "data": {
+        "url": "data/australian_placements.csv",
+        "format": {"type": "csv"}
+      },
+      "transform": [
+        {"filter": "datum.Type == 'F'"},
+        {"calculate": "parseFloat(datum['Start No.'])", "as": "start_number"},
+        {"filter": "isValid(datum.start_number)"},
+        {"calculate": "split(datum.Place, '(')[0]", "as": "placement"},
+        {"calculate": "datum.Year", "as": "year"},
+        {
+          "calculate": "1/9",
+          "as": "proportion"
+        }
+      ],
+      "mark": {
+        "type": "text",
+        "baseline": "bottom",
+        "dy": -8,
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "#ffffff"
+      },
+      "encoding": {
+        "x": {
+          "field": "start_number",
+          "type": "ordinal",
+          "scale": {"domain": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]}
+        },
+        "y": {
+          "field": "proportion",
+          "type": "quantitative",
+          "scale": {"domain": [0, 0.15]}
+        },
+        "text": {"field": "placement", "type": "nominal"},
+        "tooltip": [
+          {"field": "year", "title": "Year", "type": "nominal"},
+          {"field": "placement", "title": "Australia Rank"}
+        ]
+      }
+    }
+  ],
+  "config": {
+    "background": "transparent",
+    "view": {"stroke": "transparent"},
+    "axis": {
+      "labelFontSize": 9,
+      "titleFontSize": 12
+    },
+    "legend": {
+      "title": "Category",
+      "titleColor": "#ffffff",
+      "labelColor": "#aaaaaa",
+      "orient": "top-right"
+    }
+  }
+}

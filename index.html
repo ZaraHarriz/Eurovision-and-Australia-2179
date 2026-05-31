@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurovision & Australia Dashboard</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  
+  <style>
+    .voting-history-fullwidth {
+      background-color: var(--tip-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid var(--color-jury);
+      margin-bottom: 40px;
+    }
+
+    .voting-history-fullwidth h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text-heading);
+    }
+
+    .voting-history-fullwidth ul {
+      margin: 10px 0 0 0;
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .voting-history-fullwidth li {
+      margin-bottom: 6px;
+    }
+    .metadata-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .metadata-links a {
+      display: block;
+      padding: 12px 16px;
+      background-color: var(--tip-bg);
+      border-left: 4px solid var(--color-jury);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .metadata-links a:hover {
+      opacity: 0.75;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="banner">
+    <h1>Eurovision & Australia</h1>
+  </header>
+
+  <main class="container">
+    
+    <section class="card intro-blurb">
+      <p>Welcome to the Eurovision data visualization dashboard. This project explores the historical qualification rates of various countries, the geographic spread of the contest, and Australia's unique position within this European cultural phenomenon. Scroll down to interact with the data.</p>
+    </section>
+
+    <!-- Map Section -->
+    <section class="card">
+      <h2 class="center-heading">Qualification Rates and Hosting History</h2>
+      
+      <div class="split-layout">
+        <div class="text-side">
+          <p>The map below displays the <span class="text-rate">qualification rates</span> for the Grand Final across Europe, alongside a dedicated map view of Australia. It also highlights the <span class="text-big5">Big 5</span> nations that automatically qualify every year, and <span class="text-hosted">colored circles</span> indicating how many times different cities have hosted the event.</p>
+          <p>Comparing Australia's color saturation to the rest of the countries in Europe, it can be surmised that Australia has a middle-of-the-pack <span class="text-rate">qualification rate</span> for the years it has been in the competition.</p>
+          <p>The <span class="text-big5">Big 5</span> can be seen hosting in many different cities within their countries, whereas other countries tend to stick to hosting in one place.</p>
+        </div>
+        
+        <div class="tip-box">
+          <h3>How to read this map</h3>
+          <p class="annotation">Hover over any country to view its Eurovision stats, including its total semi-final appearances, finals reached, and overall <span class="text-rate">qualification rate</span>, which is calculated by dividing finals reached by total semi-final appearances. The map is color-coded so that a brighter, more saturated blue indicates a higher qualification success rate, while <span class="text-big5">yellow</span> signifies the Big 5 automatic qualifiers. Additionally, the <span class="text-hosted">pink circles</span> mark host cities, with larger circles indicating that a city has hosted the contest more times. You can zoom in on any particular country through the dropdown list.</p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="europe_chart"></div>
+          </div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="australia_chart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Running Order Section -->
+    <section class="card">
+      <h2 class="center-heading">Running Order Impact</h2>
+      
+      <div class="tip-box" style="margin-bottom: 24px;">
+        <p class="annotation">Running order can be super important in determining whether an entry is memorable enough to receive points. Songs performed early risk fading from the audience's memory by the time voting opens, performances in the middle can be more advantaged, and performances at the end may lose viewer focus due to the length of the competition.</p>
+      </div>
+
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Semi-Final Entry Position Analysis</h3>
+          <p>This dataset tracks whether qualifier running positions prevent semi-final entries from converting into qualifications for the Grand Final. In this chart, most running positions have an almost equal chance of progression into the finals, except 2nd and 17th–19th. Australia has not been given these disadvantaged positions during its time in the competition — in fact, it has been given some of the best. As a result, we cannot attribute Australia's qualification outcomes to running position, as both qualifications and non-qualifications have occurred from high success-rate positions.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation">The <span class="text-australia">green bars</span> show the proportion of times Australia performed from each semi-final running position, while the <span class="text-winner">yellow bars</span> show the historic proportion of successful qualifiers from each position.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="qualify_start_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Grand Final Winning Position Success</h3>
+
+          <div class="tip-box">
+            <p class="annotation">Once inside the Grand Final, the stakes change entirely. Winning requires maximum memorability. Performance positions reveal clear historic sweet spots — particularly 17th and 9th place — with the best winning chances generally falling in the middle of the running order. Australia has been given mostly favourable starting positions, which has translated into better rankings overall, with notable exceptions in 2016 and especially 2019, where Australia outperformed what their running position would predict.</p>
+          </div>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation">Examine the <span class="text-winner">yellow bars</span> to see the proportion of Grand Final winners by running position. Examine the <span class="text-australia">green bars</span> to see the proportion of Australian entries by running position. The floating numeric text marks the Grand Final leaderboard rank Australia achieved from each position.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="grand_final_start_chart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Points and Voting Section -->
+    <section class="card">
+      <h2 class="center-heading">Points and Voting Breakdown</h2>
+      
+      <div class="voting-history-fullwidth">
+        <h3>How Eurovision Points Work</h3>
+        <p>The voting system has evolved significantly during Australia's contest history:</p>
+        <ul>
+          <li><strong>2015 System:</strong> Professional jury and public televotes were mathematically averaged together to deliver a single, unified 1–12 points set from each country. Ties were broken by the televote preference.</li>
+          <li><strong>2016–2022 System:</strong> Decoupled scoring split. Juries and televoters award separate sets of 1–12 points, doubling the available points.</li>
+          <li><strong>2023–2025 Shift:</strong> Semi-Final qualifiers were decided 100% by public vote, leaving juries as backups or exclusive to Grand Final duty.</li>
+          <li><strong>2026 Amendment:</strong> Professional juries returned to the Eurovision semi-finals for the first time since 2022. Qualifiers were decided by a roughly 50/50 split between the jury vote and the public televote.</li>
+          <li><strong>2023–2026 "Rest of the World" Vote:</strong> Allows viewers from non-participating nations to vote online. Their aggregated selections count as an additional country's vote.</li>
+        </ul>
+      </div>
+      
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Ranking Over Time</h3>
+          <p>Tracks how Australia's performance placements shifted annually across the separate judging factions compared to their overall final rank. Australia consistently performs better with juries than with the public televote, perhaps reflecting Australia's strong political relationships with many participating countries.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation">Use the animation toggle or right menu to filter by year — clicking a year produces a static chart up to that point, and pressing play resumes the animation from there. Higher nodes on the vertical axis indicate better competitive rank (Rank 1 is the peak). The <span class="text-winner">yellow line</span> tracks the overall Final Rank, <span class="text-jury">blue</span> the Jury Rank, and <span class="text-televote">pink</span> the Televote Rank.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="ranking_history_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Points Awarded to Australia</h3>
+          <p>An overview profiling exactly which countries consistently backed Australian entries with high scores over time[cite: 2].</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation"><span class="text-jury">Blue bars</span> show jury points running outward to the left; <span class="text-televote">pink bars</span> show televote points running outward to the right. Wider bars indicate higher points scores collected.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="points_to_aus_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Australian Voting Distribution</h3>
+          <p>Highlights the historical variance between local Australian jury preferences and public voting choices. Patterns of juries consistently favouring certain countries — even when the public doesn't — can reveal political ties, while the televote reflects which entries genuinely resonated with Australian audiences that year.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation"><span class="text-jury">Blue dots</span> represent Jury points; <span class="text-televote">pink dots</span> represent Televote points. The size of each dot scales dynamically relative to the number of points given. The grid position shows which country the points went to and in which year.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="points_from_aus_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Geopolitical Voting Reciprocity</h3>
+          <p>Measures the net points exchange relationship between Australia and other competing nations — revealing which countries we give points to without receiving much in return, and which countries reliably support us more than we support them. For example, Sweden receives a lot of Australian points but does not reciprocate equally, as shown by the abundance of green in that row.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation"><span class="text-australia">Green blocks</span> show years where Australia gave more points than it received from that country. <span class="text-winner">Yellow blocks</span> show years where Australia received more support than it gave back. In years where Australia did not qualify for the Grand Final, all blocks are yellow as they could only give points, not receive them (e.g. 2025).</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="reciprocity_chart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Australia's Entries -->
+    <section class="card">
+      <h2 class="center-heading">Australia's Entries & Musical Trends</h2>
+      
+      <!-- Chart 1: Monthly Listeners vs Rank -->
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Monthly Listeners vs. Final Rank</h3>
+          <p>Explores the relationship between pre-competition online popularity and final leaderboard performance. Above 500,000 monthly Spotify listeners there is a correlation with achieving a better rank, whereas below that threshold the picture is murkier — smaller and mid-sized artists rank or fail to qualify similarly.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation">Each circle represents an Australian entry. The horizontal axis shows the year, while the vertical axis shows final placement (higher up reflects a better position). Circle size maps total Spotify monthly listeners. <span class="text-australia">Green nodes</span> denote qualification; <span style="color:#ff9800;font-weight:600">orange</span> highlights non-qualifications.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="aus_entries_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- Chart 2: Genre Dot Matrix Comparison -->
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Genre Performance Patterns</h3>
+          <p>Cross-references the genres used in Australian entries against the genres selected by winning nations across Eurovision since Australia joined. Australia sends predominantly pop entries and often does not match the winning genre — and at times appears to chase the previous year's winner by sending a similar style the following year.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation"><span class="text-winner">Yellow circles</span> spotlight non-Australian winning genres, <span class="text-australia">green</span> showcases genres used by Australia, and <span class="text-televote">pink</span> marks instances where Australia's entry genre matched the winner's. Hover to see Australia's Grand Final placement for that year.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="genre_comp_chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- Chart 3: Key Signatures Breakdown -->
+      <div class="split-layout visualization-row">
+        <div class="text-side">
+          <h3>Harmonic Key Distributions</h3>
+          <p>Contrasts the musical keys used in winning songs since Australia joined against the keys used in Australian entries. Australia has sent entries outside the most common winning keys more than half the time — however, matching the winner's key does not appear to correlate with achieving a better ranking.</p>
+          
+          <div class="tip-box">
+            <h3>How to read this chart</h3>
+            <p class="annotation">A layered bar comparison tracking proportional key signature usage. <span class="text-australia">Green bars</span> measure the proportion of Australian entries in each key, while overlapping <span class="text-winner">yellow bars</span> highlight the proportion of winning entries in each key.</p>
+          </div>
+        </div>
+        
+        <div class="chart-box">
+          <div class="chart-clip">
+            <div id="key_comparison_chart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metadata References -->
+    <section class="card">
+      <h2 class="center-heading">Metadata References</h2>
+      <div class="metadata-links">
+        <a href="https://eschome.net/index.html" target="_blank" rel="noopener">eschome.net — Eurovision Song Contest fan archive</a>
+        <a href="https://www.kaggle.com/datasets/diamondsnake/eurovision-song-contest-data" target="_blank" rel="noopener">Kaggle — Eurovision Song Contest Dataset (diamondsnake)</a>
+        <a href="https://hub.arcgis.com/datasets/esri::world-countries-generalized/explore?location=34.166032%2C118.938042%2C2" target="_blank" rel="noopener">ArcGIS Hub — World Countries Generalised (Esri)</a>
+        <a href="https://www.eurovision.tv/page/history" target="_blank" rel="noopener">eurovision.tv — Official Eurovision Song Contest History</a>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const baseOpts = { actions: false, renderer: "svg" };
+
+    // Maps
+    vegaEmbed("#europe_chart", "europe_map.vg.json", baseOpts).catch(console.error);
+    vegaEmbed("#australia_chart", "australia_map.vg.json", baseOpts).catch(console.error);
+
+    // Running Order
+    vegaEmbed("#qualify_start_chart", "qualify_start_num_comparison.vg.json", baseOpts).catch(console.error);
+    vegaEmbed("#grand_final_start_chart", "start_number_comparison.vg.json", baseOpts).catch(console.error);
+
+    // Points & Rankings
+    vegaEmbed("#ranking_history_chart", "Aus_rankings.vg.json", baseOpts).catch(console.error);
+    vegaEmbed("#points_to_aus_chart", "points_to_aus_2.vg.json", baseOpts).catch(console.error);
+    vegaEmbed("#points_from_aus_chart", "Points_from_aus._comparison.vg.json", { ...baseOpts, width: "container" }).catch(console.error);
+    vegaEmbed("#reciprocity_chart", "point_reciprocity.vg.json", baseOpts).catch(console.error);
+
+    // Australia's Entries & Musical Trends
+    vegaEmbed("#aus_entries_chart", "Aus_enrties.vg.json", { ...baseOpts, width: "container" }).catch(console.error);
+    vegaEmbed("#genre_comp_chart", "genre_comp_2.vg.json", { ...baseOpts, width: "container" }).catch(console.error);
+    vegaEmbed("#key_comparison_chart", "key_comparison.vg.json", { ...baseOpts, width: "container" }).catch(console.error);
+  </script>
+
+</body>
+</html>

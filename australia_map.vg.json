@@ -1,0 +1,95 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": {
+    "text": "Australia",
+    "color": "#ffffff",
+    "fontSize": 20,
+    "anchor": "start",
+    "offset": 15
+  },
+  "width": "container",
+  "height": 500,
+  "projection": {
+    "type": "mercator",
+    "scale": 240,
+    "center": [133, -27]
+  },
+  "layer": [
+    {
+      "data": {
+        "url": "data/Eurovision&surrounding.json",
+        "format": {
+          "type": "topojson",
+          "feature": "World_Countries_Generalized"
+        }
+      },
+      "mark": {
+        "type": "geoshape",
+        "fill": "#333333",
+        "stroke": "#161616",
+        "strokeWidth": 0.5
+      }
+    },
+    {
+      "data": {
+        "url": "data/Eurovision&surrounding.json",
+        "format": {
+          "type": "topojson",
+          "feature": "World_Countries_Generalized"
+        }
+      },
+      "transform": [
+        {
+          "calculate": "datum.properties.COUNTRYAFF == 'Russian Federation' ? 'Russia' : datum.properties.COUNTRYAFF == 'Moldova, Republic of' ? 'Moldova' : datum.properties.COUNTRYAFF == 'Bosnia and Herzegovina' ? 'Bosnia & Herzegovina' : datum.properties.COUNTRYAFF",
+          "as": "Cleaned_Country"
+        },
+        {
+          "lookup": "Cleaned_Country",
+          "from": {
+            "data": {
+              "url": "data/qualification_rate.csv"
+            },
+            "key": "Country",
+            "fields": ["Qualifing for F (%)", "Participations SF", "Qualifing for F"]
+          }
+        },
+        {
+          "calculate": "parseFloat(datum['Qualifing for F (%)'])",
+          "as": "Qualification_Rate"
+        }
+      ],
+      "mark": {
+        "type": "geoshape",
+        "stroke": "#161616",
+        "strokeWidth": 0.5
+      },
+      "encoding": {
+        "color": {
+          "field": "Qualification_Rate",
+          "type": "quantitative",
+          "scale": {
+            "scheme": "blues"
+          },
+          "legend": {
+            "title": "Qualification Rate (%)",
+            "format": ".0f",
+            "titleColor": "#ffffff",
+            "labelColor": "#aaaaaa",
+            "orient": "left",
+            "offset": 15
+          }
+        },
+        "tooltip": [
+          {"field": "Cleaned_Country", "type": "nominal", "title": "Country"},
+          {"field": "Qualifing for F (%)", "type": "nominal", "title": "Rate"},
+          {"field": "Participations SF", "type": "quantitative", "title": "SF Participations"},
+          {"field": "Qualifing for F", "type": "quantitative", "title": "Finals Reached"}
+        ]
+      }
+    }
+  ],
+  "config": {
+    "background": "transparent",
+    "view": {"stroke": "transparent"}
+  }
+}

@@ -1,0 +1,687 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "title": {
+    "text": "Points Awarded to Australia at Finals",
+    "subtitle": "Jury vs Televote",
+    "fontSize": 20,
+    "subtitleFontSize": 13,
+    "color": "#ffffff",
+    "subtitleColor": "#e0e0e0",
+    "anchor": "start"
+  },
+  "config": {
+    "background": "transparent"
+  },
+  "width": 250,
+  "height": 600,
+  "padding": {
+    "top": 20,
+    "left": 5,
+    "right": 100,
+    "bottom": 20
+  },
+  "signals": [
+    {
+      "name": "years",
+      "value": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2022,
+        2023,
+        2026
+      ]
+    },
+    {
+      "name": "numYears",
+      "update": "length(years)"
+    },
+    {
+      "name": "animDuration",
+      "value": 180
+    },
+    {
+      "name": "isPlaying",
+      "value": true
+    },
+    {
+      "name": "selectedYear",
+      "value": null
+    },
+    {
+      "name": "tRaw",
+      "value": 0,
+      "on": [
+        {
+          "events": {
+            "type": "timer",
+            "throttle": 16
+          },
+          "update": "isPlaying && selectedYear === null ? (tRaw + 1) % (numYears * animDuration) : tRaw"
+        }
+      ]
+    },
+    {
+      "name": "fromIndex",
+      "update": "floor(tRaw / animDuration) % numYears"
+    },
+    {
+      "name": "toIndex",
+      "update": "(fromIndex + 1) % numYears"
+    },
+    {
+      "name": "progress",
+      "update": "(tRaw % animDuration) / animDuration"
+    },
+    {
+      "name": "eased",
+      "update": "progress < 0.5 ? 2 * progress * progress : 1 - pow(-2 * progress + 2, 2) / 2"
+    },
+    {
+      "name": "currentYear",
+      "update": "selectedYear !== null ? selectedYear : years[fromIndex]"
+    },
+    {
+      "name": "interpFromYear",
+      "update": "selectedYear !== null ? selectedYear : years[fromIndex]"
+    },
+    {
+      "name": "interpToYear",
+      "update": "selectedYear !== null ? selectedYear : years[toIndex]"
+    },
+    {
+      "name": "useInterpolation",
+      "update": "selectedYear === null && progress > 0 && progress < 1"
+    }
+  ],
+  "data": [
+    {
+      "name": "raw",
+      "url": "data/points_to_aus.csv",
+      "format": {
+        "type": "csv",
+        "parse": {
+          "Year": "number",
+          "Points J": "number",
+          "Points T": "number",
+          "Points": "number"
+        }
+      }
+    },
+    {
+      "name": "allCountries",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['Voting Country'] !== 'Rest of world' && isValid(datum['Voting Country'])"
+        },
+        {
+          "type": "aggregate",
+          "groupby": [
+            "Voting Country"
+          ]
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": "Voting Country",
+            "order": "ascending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "fromData",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.Year === interpFromYear && datum['Voting Country'] !== 'Rest of world' && isValid(datum['Voting Country']) && isValid(datum['Points J']) && isValid(datum['Points T'])"
+        },
+        {
+          "type": "formula",
+          "as": "fromJuryNeg",
+          "expr": "-datum['Points J']"
+        },
+        {
+          "type": "formula",
+          "as": "fromTV",
+          "expr": "datum['Points T']"
+        },
+        {
+          "type": "formula",
+          "as": "fromPoints",
+          "expr": "datum['Points']"
+        }
+      ]
+    },
+    {
+      "name": "toData",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.Year === interpToYear && datum['Voting Country'] !== 'Rest of world' && isValid(datum['Voting Country']) && isValid(datum['Points J']) && isValid(datum['Points T'])"
+        },
+        {
+          "type": "formula",
+          "as": "toJuryNeg",
+          "expr": "-datum['Points J']"
+        },
+        {
+          "type": "formula",
+          "as": "toTV",
+          "expr": "datum['Points T']"
+        },
+        {
+          "type": "formula",
+          "as": "toPoints",
+          "expr": "datum['Points']"
+        }
+      ]
+    },
+    {
+      "name": "interpolated",
+      "source": "allCountries",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "fromData",
+          "key": "Voting Country",
+          "fields": [
+            "Voting Country"
+          ],
+          "values": [
+            "fromJuryNeg",
+            "fromTV",
+            "fromPoints"
+          ],
+          "as": [
+            "fromJuryNeg",
+            "fromTV",
+            "fromPoints"
+          ],
+          "default": 0
+        },
+        {
+          "type": "lookup",
+          "from": "toData",
+          "key": "Voting Country",
+          "fields": [
+            "Voting Country"
+          ],
+          "values": [
+            "toJuryNeg",
+            "toTV",
+            "toPoints"
+          ],
+          "as": [
+            "toJuryNeg",
+            "toTV",
+            "toPoints"
+          ],
+          "default": 0
+        },
+        {
+          "type": "formula",
+          "as": "interpJuryNeg",
+          "expr": "useInterpolation ? (datum.fromJuryNeg + (datum.toJuryNeg - datum.fromJuryNeg) * eased) : datum.fromJuryNeg"
+        },
+        {
+          "type": "formula",
+          "as": "interpTV",
+          "expr": "useInterpolation ? (datum.fromTV + (datum.toTV - datum.fromTV) * eased) : datum.fromTV"
+        },
+        {
+          "type": "formula",
+          "as": "interpPoints",
+          "expr": "useInterpolation ? (datum.fromPoints + (datum.toPoints - datum.fromPoints) * eased) : datum.fromPoints"
+        },
+        {
+          "type": "formula",
+          "as": "displayJuryPoints",
+          "expr": "round(datum.interpJuryNeg * -1)"
+        },
+        {
+          "type": "formula",
+          "as": "displayTVPoints",
+          "expr": "round(datum.interpTV)"
+        }
+      ]
+    },
+    {
+      "name": "yearList",
+      "values": [
+        {
+          "year": 2016
+        },
+        {
+          "year": 2017
+        },
+        {
+          "year": 2018
+        },
+        {
+          "year": 2019
+        },
+        {
+          "year": 2022
+        },
+        {
+          "year": 2023
+        },
+        {
+          "year": 2026
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "y",
+      "type": "band",
+      "domain": {
+        "data": "allCountries",
+        "field": "Voting Country",
+        "sort": {
+          "field": "Voting Country",
+          "order": "ascending"
+        }
+      },
+      "range": [
+        0,
+        {
+          "signal": "height"
+        }
+      ],
+      "padding": 0.15
+    },
+    {
+      "name": "x",
+      "type": "linear",
+      "domain": [
+        -12,
+        12
+      ],
+      "range": [
+        0,
+        {
+          "signal": "width"
+        }
+      ],
+      "nice": false,
+      "zero": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom",
+      "title": "12 \u2190 Jury Points  |  Televote Points \u2192 12",
+      "titleFontSize": 12,
+      "grid": true,
+      "gridOpacity": 0.08,
+      "tickCount": 5,
+      "encode": {
+        "labels": {
+          "update": {
+            "text": {
+              "signal": "abs(datum.value)"
+            }
+          }
+        }
+      },
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "gridColor": "#ffffff"
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "labelFontSize": 11,
+      "title": null,
+      "ticks": false,
+      "domain": false,
+      "labelColor": "#e0e0e0",
+      "titleColor": "#e0e0e0",
+      "gridColor": "#ffffff",
+      "gridOpacity": 0.08
+    }
+  ],
+  "marks": [
+    {
+      "type": "rect",
+      "from": {
+        "data": "interpolated"
+      },
+      "encode": {
+        "enter": {
+          "fill": {
+            "value": "#1E88E5"
+          },
+          "fillOpacity": {
+            "value": 0.85
+          }
+        },
+        "update": {
+          "y": {
+            "scale": "y",
+            "field": "Voting Country"
+          },
+          "height": {
+            "scale": "y",
+            "band": 1
+          },
+          "x": {
+            "scale": "x",
+            "field": "interpJuryNeg"
+          },
+          "x2": {
+            "scale": "x",
+            "value": 0
+          },
+          "tooltip": {
+            "signal": "{'Country': datum['Voting Country'], 'Points': datum.displayJuryPoints, 'Vote Type': 'Jury'}"
+          }
+        }
+      }
+    },
+    {
+      "type": "rect",
+      "from": {
+        "data": "interpolated"
+      },
+      "encode": {
+        "enter": {
+          "fill": {
+            "value": "#E91E8C"
+          },
+          "fillOpacity": {
+            "value": 0.85
+          }
+        },
+        "update": {
+          "y": {
+            "scale": "y",
+            "field": "Voting Country"
+          },
+          "height": {
+            "scale": "y",
+            "band": 1
+          },
+          "x": {
+            "scale": "x",
+            "value": 0
+          },
+          "x2": {
+            "scale": "x",
+            "field": "interpTV"
+          },
+          "tooltip": {
+            "signal": "{'Country': datum['Voting Country'], 'Points': datum.displayTVPoints, 'Vote Type': 'Televote'}"
+          }
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "encode": {
+        "enter": {
+          "x": {
+            "scale": "x",
+            "value": 0
+          },
+          "y": {
+            "value": 0
+          },
+          "y2": {
+            "signal": "height"
+          },
+          "stroke": {
+            "value": "#333"
+          },
+          "strokeWidth": {
+            "value": 1.5
+          },
+          "strokeDash": {
+            "value": [
+              4,
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {
+            "signal": "width + 10"
+          },
+          "y": {
+            "value": 60
+          }
+        }
+      },
+      "signals": [
+        {
+          "name": "selectedYear",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "datum.year"
+            },
+            {
+              "events": "@playPauseRect:click, @playPauseText:click",
+              "update": "null"
+            }
+          ]
+        },
+        {
+          "name": "isPlaying",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "false"
+            },
+            {
+              "events": "@playPauseRect:click, @playPauseText:click",
+              "update": "!isPlaying"
+            }
+          ]
+        },
+        {
+          "name": "tRaw",
+          "push": "outer",
+          "on": [
+            {
+              "events": "@yearBtnRect:click, @yearBtnText:click",
+              "update": "indexof(years, datum.year) * animDuration"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "y": {
+                "value": 6
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fontSize": {
+                "value": 12
+              },
+              "fill": {
+                "value": "#e0e0e0"
+              },
+              "text": {
+                "value": "Year"
+              }
+            }
+          }
+        },
+        {
+          "name": "yearBtnRect",
+          "type": "rect",
+          "from": {
+            "data": "yearList"
+          },
+          "encode": {
+            "enter": {
+              "width": {
+                "value": 80
+              },
+              "height": {
+                "value": 36
+              },
+              "cornerRadius": {
+                "value": 6
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "y": {
+                "signal": "((datum.year === 2016 ? 0 : datum.year === 2017 ? 1 : datum.year === 2018 ? 2 : datum.year === 2019 ? 3 : datum.year === 2022 ? 4 : datum.year === 2023 ? 5 : 6) * 44) + 23"
+              },
+              "text": {
+                "signal": "datum.year"
+              },
+              "fill": {
+                "signal": "datum.year === currentYear ? '#1E88E5' : '#3a3a3a'"
+              },
+              "stroke": {
+                "signal": "datum.year === currentYear ? '#1060a0' : '#555555'"
+              },
+              "strokeWidth": {
+                "value": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "yearBtnText",
+          "type": "text",
+          "from": {
+            "data": "yearList"
+          },
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fontSize": {
+                "value": 14
+              },
+              "cursor": {
+                "value": "pointer"
+              },
+              "dy": {
+                "value": 23
+              }
+            },
+            "update": {
+              "y": {
+                "signal": "((datum.year === 2016 ? 0 : datum.year === 2017 ? 1 : datum.year === 2018 ? 2 : datum.year === 2019 ? 3 : datum.year === 2022 ? 4 : datum.year === 2023 ? 5 : 6) * 44) + 23"
+              },
+              "text": {
+                "signal": "datum.year"
+              },
+              "fill": {
+                "signal": "datum.year === currentYear ? 'white' : '#cccccc'"
+              }
+            }
+          }
+        },
+        {
+          "name": "playPauseRect",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 0
+              },
+              "y": {
+                "value": 340
+              },
+              "width": {
+                "value": 80
+              },
+              "height": {
+                "value": 36
+              },
+              "cornerRadius": {
+                "value": 6
+              },
+              "cursor": {
+                "value": "pointer"
+              },
+              "fill": {
+                "value": "#1E88E5"
+              },
+              "fillOpacity": {
+                "value": 0.9
+              }
+            }
+          }
+        },
+        {
+          "name": "playPauseText",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": {
+                "value": 40
+              },
+              "y": {
+                "value": 363
+              },
+              "align": {
+                "value": "center"
+              },
+              "fontSize": {
+                "value": 12
+              },
+              "fontWeight": {
+                "value": "bold"
+              },
+              "fill": {
+                "value": "white"
+              },
+              "cursor": {
+                "value": "pointer"
+              }
+            },
+            "update": {
+              "text": {
+                "signal": "isPlaying ? '\u23f8 Pause' : '\u25b6 Play'"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
